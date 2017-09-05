@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity  {
                 OkHttpClient client = new OkHttpClient();
                 Request request = new Request.Builder().url("http://192.168.100.57/script.php?id=" + id).build();
                 try {
-                    Log.e("swikriti", "sonika");
+
                     Response response = client.newCall(request).execute();
 
 
