@@ -152,10 +152,6 @@ public class MainActivity extends AppCompatActivity  {
                 CustomAdapter mAdapter = new CustomAdapter(MainActivity.this, data_list );
                 mrecyclerView.setAdapter(mAdapter);
                 mAdapter.notifyDataSetChanged();
-
-
-
-
             } else {
                 Toast.makeText(MainActivity.this, "Invalid credentials", Toast.LENGTH_SHORT).show();
             }
