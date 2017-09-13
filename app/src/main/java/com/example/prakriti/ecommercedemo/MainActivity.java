@@ -7,7 +7,7 @@ import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-
+import android.widget.Toast;
 
 
 import org.json.JSONArray;
@@ -16,96 +16,153 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+
 
 public class MainActivity extends AppCompatActivity  {
-    private RecyclerView recyclerView;
-    private GridLayoutManager gridLayoutManager;
-    private CustomAdapter adapter;
-    private List<MyData> data_list;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        recyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        data_list = new ArrayList<>();
-        // new FoodAsyncTask().execute();
-        load_data_from_server(0);
 
-        gridLayoutManager = new GridLayoutManager(this, 1);
-        recyclerView.setLayoutManager(gridLayoutManager);
+         new ProductAsyncTask().execute();
 
-        adapter = new CustomAdapter(this, data_list);
-        recyclerView.setAdapter(adapter);
 
-        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                if (gridLayoutManager.findLastVisibleItemPosition() == data_list.size() - 1) {
-                  load_data_from_server(data_list.get(data_list.size() - 1).getId());
-                }
-            }
-        });
+
 
     }
-    private void load_data_from_server(final int id) {
-        AsyncTask<Integer, Void, Void> task = new AsyncTask<Integer, Void, Void>() {
+    class ProductAsyncTask extends AsyncTask<String, String, String> {
+        ProgressDialog mprogressDialog;
+        RecyclerView mrecyclerView;
+        int flag;
+        List<MyData> data_list = new ArrayList<>();
 
-            ProgressDialog mprogressDialog;
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            mprogressDialog = new ProgressDialog(MainActivity.this);
+            mprogressDialog.setMessage("Please wait");
+            mprogressDialog.setCancelable(false);
+            mprogressDialog.show();
 
-            @Override
-            protected void onPreExecute() {
-                super.onPreExecute();
-                mprogressDialog = new ProgressDialog(MainActivity.this);
-                mprogressDialog.setMessage("Please wait");
-                mprogressDialog.setCancelable(false);
-                mprogressDialog.show();
+        }
 
-            }
-
-            @Override
-            protected Void doInBackground(Integer... integers) {
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder().url("http://192.168.100.57/script.php?id=" + id).build();
-                try {
-
-                    Response response = client.newCall(request).execute();
-
-
-                    JSONArray array = new JSONArray(response.body().string());
+        @Override
+        protected String doInBackground(String... params) {
+            HashMap<String, String> loginHashMap = new HashMap<>();
+            JsonParser jsonParser = new JsonParser();
+            JSONObject jsonObject = jsonParser.performPostCI("http://telemart.com.np/api/android/categories.php", loginHashMap);
+            String request = "";
 
 
-                    for (int i = 0; i < array.length(); i++) {
-                        JSONObject object = array.getJSONObject(i);
-                        MyData data = new MyData(object.getInt("id"), object.getString("name"),
-                                object.getString("description"),  object.getString("image"),object.getString("price"));
-                        data_list.add(data);
+            try {
+                if (jsonObject == null) {
+                    flag = 1;
+                } else if (jsonObject.getString(request).equals(request)) {
+                    JSONArray jsonArray=jsonObject.getJSONArray(request);
+                    for (int i = 0; i < jsonArray.length(); i++) {
+                            JSONObject object = jsonArray.getJSONObject(i);
+                            Integer id = object.getInt("id");
+                            String name = object.getString("name");
+                            String slug = object.getString("slug");
+                            Integer parent = object.getInt("parent");
+                            String description = object.getString("description");
+                            String display = object.getString("display");
+
+                            // Image node is JSON Object
+                            JSONObject image = object.getJSONObject("image");
+                            Integer image_id  = image.getInt("id");
+                            String date_created = image.getString("date_created");
+                            String date_created_gmt =image.getString("date_created_gmt");
+                            String date_modified =image.getString("date_modified");
+                            String date_modified_gmt =image.getString("date_modified_gmt");
+                            String src =image.getString("src");
+                            String title =image.getString("title");
+                            String alt =image.getString("alt");
+
+
+                            //same as above
+                            Integer menu_order = object.getInt("menu_order");
+                            Integer count = object.getInt("count");
+
+                            JSONObject _links = object.getJSONObject("_links");
+
+                            JSONArray self = _links.getJSONArray("self");
+
+                            String self_href = self.getJSONObject(i).getString("href");
+
+                            JSONArray collection = _links.getJSONArray("collection");
+
+                            String collection_href = collection.getJSONObject(i).getString("href");
+
+
+
+
+
+                            //String character = FoodArray.getJSONObject(i).getString("char");
+                            //   JSONArray Self = object.getJSONArray("self");
+                            //  for (int i = 0; i < Self.length(); i++) {
+
+                            //     String character = Self.getJSONObject(i).getString("href");
+
+                            //   JSONObject status = response.getJSONObject("status");
+
+
+                            MyData myData= new MyData(id, count, menu_order, parent,image_id,name, slug, description, display,date_created, date_created_gmt, date_modified,date_modified_gmt, src, title, alt, self_href, collection_href);
+
+                            data_list.add(myData);
+
+                            Log.e("donkey", "sam");
 
                     }
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (JSONException e) {
-                    System.out.println("End of Content");
                 }
-                return null;
-            }
+                else {
+                    flag = 3;
+                }
 
-            @Override
-            protected void onPostExecute(Void aVoid) {
-
-                mprogressDialog.dismiss();
-                adapter.notifyDataSetChanged();
+            } catch (JSONException e) {
 
             }
-        };
-        task.execute(id);
+            return null;
+        }
+
+
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            mprogressDialog.dismiss();
+            if (flag == 1) {
+                Toast.makeText(MainActivity.this, "Server/Network issue", Toast.LENGTH_SHORT).show();
+
+            } else if (flag == 2) {
+                //mAdapter.notifyDataSetChanged();
+                Toast.makeText(MainActivity.this, "Success", Toast.LENGTH_SHORT).show();
+                mrecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+
+                GridLayoutManager mGrid = new GridLayoutManager(MainActivity.this,1);
+                mrecyclerView.setLayoutManager(mGrid);
+                mrecyclerView.setHasFixedSize(true);
+                CustomAdapter mAdapter = new CustomAdapter(MainActivity.this, data_list );
+                mrecyclerView.setAdapter(mAdapter);
+                mAdapter.notifyDataSetChanged();
+
+
+
+
+            } else {
+                Toast.makeText(MainActivity.this, "Invalid credentials", Toast.LENGTH_SHORT).show();
+            }
+
+
+        }
+
     }
+
 }
